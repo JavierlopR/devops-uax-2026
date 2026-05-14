@@ -1,0 +1,18 @@
+# Tarea 8 - Kubernetes Service | Alumno: JJLR
+apiVersion: v1
+kind: Service
+metadata:
+  name: tarea8-service-jjlr
+  namespace: default
+  labels:
+    app: tarea8-jjlr
+    alumno: jjlr
+spec:
+  selector:
+    app: tarea8-jjlr
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+    nodePort: 30080
+  type: NodePort

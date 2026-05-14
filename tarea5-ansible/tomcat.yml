@@ -1,0 +1,138 @@
+---
+# Tarea 5 - Ansible Playbook: Instalar y configurar Apache Tomcat
+# Alumno: Javier López Ramos (JJLR)
+# Fecha: Mayo 2026
+
+- name: Instalacion y Configuracion de Apache Tomcat 10 con Ansible
+  hosts: tomcat_servers
+  become: yes
+  gather_facts: yes
+
+  vars:
+    tomcat_version: "10.1.24"
+    tomcat_port: 8080
+    tomcat_home: "/opt/tomcat"
+    tomcat_user: "tomcat"
+    tomcat_group: "tomcat"
+    java_package: "openjdk-17-jdk"
+
+  tasks:
+
+    - name: "[1/8] Actualizar cache de paquetes apt"
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "[2/8] Instalar Java OpenJDK 17"
+      apt:
+        name: "{{ java_package }}"
+        state: present
+
+    - name: "[3/8] Verificar version de Java instalada"
+      command: java -version
+      register: java_version_output
+      changed_when: false
+
+    - name: "[4/8] Crear grupo tomcat"
+      group:
+        name: "{{ tomcat_group }}"
+        state: present
+
+    - name: "[5/8] Crear usuario tomcat"
+      user:
+        name: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        home: "{{ tomcat_home }}"
+        shell: /bin/false
+        system: yes
+        create_home: yes
+
+    - name: "[6/8] Descargar Apache Tomcat {{ tomcat_version }}"
+      get_url:
+        url: "https://archive.apache.org/dist/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        mode: '0644'
+
+    - name: "[7/8] Extraer Tomcat en {{ tomcat_home }}"
+      unarchive:
+        src: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        dest: "/opt"
+        remote_src: yes
+        creates: "/opt/apache-tomcat-{{ tomcat_version }}"
+
+    - name: "[7b/8] Crear symlink tomcat_home -> version"
+      file:
+        src: "/opt/apache-tomcat-{{ tomcat_version }}"
+        dest: "{{ tomcat_home }}"
+        state: link
+        force: yes
+
+    - name: "[7c/8] Establecer propietario del directorio Tomcat"
+      file:
+        path: "/opt/apache-tomcat-{{ tomcat_version }}"
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        recurse: yes
+
+    - name: "[8/8] Crear servicio systemd para Tomcat"
+      copy:
+        content: |
+          [Unit]
+          Description=Apache Tomcat Web Application Server - JJLR DevOps
+          After=network.target
+
+          [Service]
+          Type=forking
+          User={{ tomcat_user }}
+          Group={{ tomcat_group }}
+          Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+          Environment="CATALINA_PID={{ tomcat_home }}/temp/tomcat.pid"
+          Environment="CATALINA_HOME={{ tomcat_home }}"
+          Environment="CATALINA_BASE={{ tomcat_home }}"
+          ExecStart={{ tomcat_home }}/bin/startup.sh
+          ExecStop={{ tomcat_home }}/bin/shutdown.sh
+          RestartSec=10
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/tomcat.service
+        mode: '0644'
+
+    - name: "Recargar systemd daemon"
+      systemd:
+        daemon_reload: yes
+
+    - name: "Iniciar y habilitar servicio Tomcat"
+      systemd:
+        name: tomcat
+        state: started
+        enabled: yes
+
+    - name: "Verificar que Tomcat esta escuchando en puerto {{ tomcat_port }}"
+      wait_for:
+        host: localhost
+        port: "{{ tomcat_port }}"
+        delay: 5
+        timeout: 60
+
+    - name: "Obtener estado del servicio Tomcat"
+      command: systemctl status tomcat
+      register: tomcat_status
+      changed_when: false
+
+    - name: "Mostrar estado de Tomcat"
+      debug:
+        msg: "Tomcat service status: {{ tomcat_status.stdout_lines[:5] }}"
+
+  post_tasks:
+    - name: "=== TOMCAT INSTALADO EXITOSAMENTE ==="
+      debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "IP: {{ ansible_host | default(ansible_default_ipv4.address) }}"
+          - "Tomcat version: {{ tomcat_version }}"
+          - "Puerto: {{ tomcat_port }}"
+          - "Directorio: {{ tomcat_home }}"
+          - "Java: {{ java_package }}"
+          - "URL: http://{{ ansible_default_ipv4.address }}:{{ tomcat_port }}/"
