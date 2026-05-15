@@ -1,84 +1,83 @@
 ---
-# Tarea 5 - Ansible Playbook: Instalar y configurar Apache Tomcat
-# Alumno: Javier López Ramos (JJLR)
-# Fecha: Mayo 2026
-
-- name: Instalacion y Configuracion de Apache Tomcat 10 con Ansible
+- name: Instalar y configurar Apache Tomcat 10.1.24
   hosts: tomcat_servers
   become: yes
-  gather_facts: yes
 
   vars:
     tomcat_version: "10.1.24"
-    tomcat_port: 8080
-    tomcat_home: "/opt/tomcat"
+    tomcat_install_dir: "/opt"
+    tomcat_home: "/opt/apache-tomcat-{{ tomcat_version }}"
+    tomcat_symlink: "/opt/tomcat"
     tomcat_user: "tomcat"
     tomcat_group: "tomcat"
     java_package: "openjdk-17-jdk"
+    tomcat_url: "https://downloads.apache.org/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
 
   tasks:
-
-    - name: "[1/8] Actualizar cache de paquetes apt"
+    - name: 1 - Actualizar cache de paquetes apt
       apt:
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: "[2/8] Instalar Java OpenJDK 17"
+    - name: 2 - Instalar OpenJDK 17
       apt:
         name: "{{ java_package }}"
         state: present
 
-    - name: "[3/8] Verificar version de Java instalada"
-      command: java -version
-      register: java_version_output
-      changed_when: false
-
-    - name: "[4/8] Crear grupo tomcat"
+    - name: 3 - Crear grupo tomcat
       group:
         name: "{{ tomcat_group }}"
         state: present
 
-    - name: "[5/8] Crear usuario tomcat"
+    - name: 4 - Crear usuario tomcat
       user:
         name: "{{ tomcat_user }}"
         group: "{{ tomcat_group }}"
-        home: "{{ tomcat_home }}"
+        home: "{{ tomcat_symlink }}"
         shell: /bin/false
         system: yes
-        create_home: yes
+        create_home: no
 
-    - name: "[6/8] Descargar Apache Tomcat {{ tomcat_version }}"
+    - name: 5 - Descargar Apache Tomcat {{ tomcat_version }}
       get_url:
-        url: "https://archive.apache.org/dist/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        url: "{{ tomcat_url }}"
         dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
         mode: '0644'
 
-    - name: "[7/8] Extraer Tomcat en {{ tomcat_home }}"
+    - name: 6 - Extraer Tomcat en /opt
       unarchive:
         src: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
-        dest: "/opt"
+        dest: "{{ tomcat_install_dir }}"
         remote_src: yes
-        creates: "/opt/apache-tomcat-{{ tomcat_version }}"
+        creates: "{{ tomcat_home }}"
 
-    - name: "[7b/8] Crear symlink tomcat_home -> version"
+    - name: 7 - Crear symlink /opt/tomcat -> /opt/apache-tomcat-{{ tomcat_version }}
       file:
-        src: "/opt/apache-tomcat-{{ tomcat_version }}"
-        dest: "{{ tomcat_home }}"
+        src: "{{ tomcat_home }}"
+        dest: "{{ tomcat_symlink }}"
         state: link
         force: yes
 
-    - name: "[7c/8] Establecer propietario del directorio Tomcat"
+    - name: 8a - Establecer permisos en directorio bin
       file:
-        path: "/opt/apache-tomcat-{{ tomcat_version }}"
+        path: "{{ tomcat_symlink }}/bin"
         owner: "{{ tomcat_user }}"
         group: "{{ tomcat_group }}"
         recurse: yes
 
-    - name: "[8/8] Crear servicio systemd para Tomcat"
+    - name: 8b - Establecer permisos en directorio webapps
+      file:
+        path: "{{ tomcat_symlink }}/webapps"
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        recurse: yes
+
+    - name: 9 - Crear archivo de servicio systemd para Tomcat
       copy:
+        dest: /etc/systemd/system/tomcat.service
         content: |
           [Unit]
-          Description=Apache Tomcat Web Application Server - JJLR DevOps
+          Description=Apache Tomcat 10 Web Application Server
           After=network.target
 
           [Service]
@@ -86,53 +85,35 @@
           User={{ tomcat_user }}
           Group={{ tomcat_group }}
           Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-          Environment="CATALINA_PID={{ tomcat_home }}/temp/tomcat.pid"
-          Environment="CATALINA_HOME={{ tomcat_home }}"
-          Environment="CATALINA_BASE={{ tomcat_home }}"
-          ExecStart={{ tomcat_home }}/bin/startup.sh
-          ExecStop={{ tomcat_home }}/bin/shutdown.sh
-          RestartSec=10
-          Restart=always
+          Environment="CATALINA_PID={{ tomcat_symlink }}/temp/tomcat.pid"
+          Environment="CATALINA_HOME={{ tomcat_symlink }}"
+          Environment="CATALINA_BASE={{ tomcat_symlink }}"
+          Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
+          ExecStart={{ tomcat_symlink }}/bin/startup.sh
+          ExecStop={{ tomcat_symlink }}/bin/shutdown.sh
+          Restart=on-failure
 
           [Install]
           WantedBy=multi-user.target
-        dest: /etc/systemd/system/tomcat.service
         mode: '0644'
 
-    - name: "Recargar systemd daemon"
+    - name: 10 - Recargar daemon de systemd
       systemd:
         daemon_reload: yes
 
-    - name: "Iniciar y habilitar servicio Tomcat"
+    - name: 11 - Habilitar e iniciar servicio Tomcat
       systemd:
         name: tomcat
         state: started
         enabled: yes
 
-    - name: "Verificar que Tomcat esta escuchando en puerto {{ tomcat_port }}"
+    - name: 12 - Esperar que Tomcat escuche en puerto 8080
       wait_for:
         host: localhost
-        port: "{{ tomcat_port }}"
+        port: 8080
         delay: 5
         timeout: 60
 
-    - name: "Obtener estado del servicio Tomcat"
-      command: systemctl status tomcat
-      register: tomcat_status
-      changed_when: false
-
-    - name: "Mostrar estado de Tomcat"
+    - name: 13 - Mostrar URL de acceso a Tomcat
       debug:
-        msg: "Tomcat service status: {{ tomcat_status.stdout_lines[:5] }}"
-
-  post_tasks:
-    - name: "=== TOMCAT INSTALADO EXITOSAMENTE ==="
-      debug:
-        msg:
-          - "Host: {{ inventory_hostname }}"
-          - "IP: {{ ansible_host | default(ansible_default_ipv4.address) }}"
-          - "Tomcat version: {{ tomcat_version }}"
-          - "Puerto: {{ tomcat_port }}"
-          - "Directorio: {{ tomcat_home }}"
-          - "Java: {{ java_package }}"
-          - "URL: http://{{ ansible_default_ipv4.address }}:{{ tomcat_port }}/"
+        msg: "Tomcat {{ tomcat_version }} disponible en http://{{ ansible_host }}:8080"

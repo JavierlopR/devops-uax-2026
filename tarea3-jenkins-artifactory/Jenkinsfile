@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+
+    environment {
+        MAVEN = '/opt/apache-maven-3.9.6/bin/mvn'
+        PROJECT = '/opt/maven-demo-jjlr'
+        ARTIFACTORY_URL = 'http://localhost:8082/artifactory'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '=== TAREA 3: CI/CD Pipeline Maven + Artifactory OSS ==='
+                sh 'ls ${PROJECT}'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo '--- Compilando proyecto Maven ---'
+                sh '${MAVEN} -f ${PROJECT}/pom.xml clean compile -s ${PROJECT}/settings.xml -B'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo '--- Ejecutando pruebas ---'
+                sh '${MAVEN} -f ${PROJECT}/pom.xml test -s ${PROJECT}/settings.xml -B'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo '--- Empaquetando artefacto JAR ---'
+                sh '${MAVEN} -f ${PROJECT}/pom.xml package -DskipTests -s ${PROJECT}/settings.xml -B'
+                sh 'ls -lh ${PROJECT}/target/*.jar'
+            }
+        }
+
+        stage('Deploy to Artifactory') {
+            steps {
+                echo '--- Desplegando artefacto en JFrog Artifactory ---'
+                sh '${MAVEN} -f ${PROJECT}/pom.xml deploy -DskipTests -s ${PROJECT}/settings.xml -B'
+                echo '=== ARTEFACTO DESPLEGADO EN ARTIFACTORY EXITOSAMENTE ==='
+            }
+        }
+
+        stage('Verificacion') {
+            steps {
+                echo '--- Verificando artefacto en Artifactory ---'
+                sh 'curl -s -o /dev/null -w "HTTP Status Artifactory: %{http_code}" -u admin:password ${ARTIFACTORY_URL}/libs-snapshot-local/com/jjlr/devops/maven-demo/'
+                echo 'ARTEFACTO VERIFICADO EN ARTIFACTORY OSS'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'PIPELINE TAREA 3 EXITOSO - Artefacto Maven en JFrog Artifactory OSS'
+        }
+        failure {
+            echo 'Pipeline fallido'
+        }
+    }
+}

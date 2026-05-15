@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        MAVEN = '/opt/apache-maven-3.9.6/bin/mvn'
+        PROJECT = '/opt/maven-demo-jjlr'
+        SONAR_URL = 'http://10.0.0.4:9000'  // IP privada (hairpin NAT fix)
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '=== TAREA 4: Pipeline CI/CD con Analisis SonarQube ==='
+                echo 'Proyecto: maven-demo-jjlr | Alumno: JJLR'
+                sh 'ls ${PROJECT}'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo '--- Compilando proyecto Maven ---'
+                sh '${MAVEN} -f ${PROJECT}/pom.xml clean compile -s ${PROJECT}/settings.xml -B'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo '--- Ejecutando pruebas unitarias ---'
+                sh '${MAVEN} -f ${PROJECT}/pom.xml test -s ${PROJECT}/settings.xml -B'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                echo '--- Ejecutando analisis de calidad SonarQube ---'
+                withSonarQubeEnv('SonarQube') {
+                    sh "${MAVEN} -f ${PROJECT}/pom.xml sonar:sonar \
+                        -Dsonar.projectKey=com.jjlr.devops:maven-demo \
+                        -Dsonar.projectName=maven-demo-jjlr \
+                        -Dsonar.java.binaries=${PROJECT}/target/classes \
+                        -s ${PROJECT}/settings.xml -B"
+                }
+                echo '=== ANALISIS SONARQUBE ENVIADO ==='
+            }
+        }
+
+        stage('Quality Gate Check') {
+            steps {
+                echo '--- Verificando Quality Gate en SonarQube ---'
+                sh '''
+                    STATUS=$(curl -s -u admin:admin http://10.0.0.4:9000/api/qualitygates/project_status?projectKey=com.jjlr.devops:maven-demo | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])")
+                    echo Quality Gate: $STATUS
+                    echo === QUALITY GATE VERIFICADO ===
+                '''
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo '--- Empaquetando artefacto JAR ---'
+                sh '${MAVEN} -f ${PROJECT}/pom.xml package -DskipTests -s ${PROJECT}/settings.xml -B'
+                sh 'ls -lh ${PROJECT}/target/*.jar'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'PIPELINE TAREA 4 EXITOSO - Analisis SonarQube completado exitosamente'
+        }
+        failure {
+            echo 'Pipeline fallido'
+        }
+    }
+}

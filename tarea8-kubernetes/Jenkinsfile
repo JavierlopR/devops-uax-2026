@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    environment {
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+        K8S_MANIFESTS = '/var/lib/jenkins/workspace/tarea8-manifests'
+        APP_NAME = 'tarea8-deployment-jjlr'
+        NAMESPACE = 'default'
+    }
+
+    stages {
+        stage('Checkout Manifests') {
+            steps {
+                echo '=== TAREA 8: Pipeline CI/CD con Kubernetes (k3s) ==='
+                echo 'Alumno: JJLR | UAX DevOps 2026'
+                sh 'cp -r ${K8S_MANIFESTS}/. .'
+                sh 'ls -la *.yaml'
+            }
+        }
+
+        stage('Verify Cluster') {
+            steps {
+                echo '--- Verificando cluster k3s ---'
+                sh 'kubectl get nodes -o wide'
+                sh 'kubectl cluster-info'
+                sh 'kubectl get namespaces'
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                echo '--- Desplegando aplicacion en Kubernetes ---'
+                sh 'kubectl apply -f deployment.yaml'
+                sh 'kubectl apply -f service.yaml'
+                echo '=== MANIFESTS APLICADOS ==='
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                echo '--- Verificando despliegue ---'
+                sh 'kubectl rollout status deployment/${APP_NAME} --timeout=90s'
+                sh 'kubectl get pods -l app=tarea8-jjlr -o wide'
+                sh 'kubectl get service tarea8-service-jjlr'
+                sh 'kubectl describe deployment ${APP_NAME}'
+            }
+        }
+
+        stage('Integration Test') {
+            steps {
+                echo '--- Probando aplicacion via NodePort 30080 ---'
+                sh 'sleep 5'
+                sh 'curl -sf http://localhost:30080/health'
+                sh 'curl -sf http://localhost:30080/ | head -10'
+                echo '=== KUBERNETES INTEGRATION TEST EXITOSO ==='
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                echo '--- Eliminando recursos de Kubernetes ---'
+                sh 'kubectl delete -f service.yaml'
+                sh 'kubectl delete -f deployment.yaml'
+                sh 'kubectl get pods -l app=tarea8-jjlr'
+                echo '=== RECURSOS ELIMINADOS ==='
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'PIPELINE TAREA 8 EXITOSO - Aplicacion desplegada en Kubernetes correctamente'
+        }
+        failure {
+            sh 'kubectl delete -f service.yaml || true'
+            sh 'kubectl delete -f deployment.yaml || true'
+            echo 'Pipeline fallido - recursos limpiados'
+        }
+    }
+}

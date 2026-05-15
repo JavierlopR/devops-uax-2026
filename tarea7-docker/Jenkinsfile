@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '=== TAREA 7: Pipeline CI/CD con Docker ==='
+                echo 'Alumno: JJLR | UAX DevOps 2026'
+                sh 'cp -r /var/lib/jenkins/workspace/tarea7-app/. .'
+                sh 'ls -la'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo '--- Construyendo imagen Docker ---'
+                sh 'docker build -t tarea7-jjlr:latest .'
+                sh 'docker images tarea7-jjlr:latest'
+            }
+        }
+
+        stage('Inspect Image') {
+            steps {
+                echo '--- Inspeccionando imagen ---'
+                sh 'docker inspect --format "OS: {{.Os}} | Arch: {{.Architecture}} | Size: {{.Size}}" tarea7-jjlr:latest'
+                sh 'docker history tarea7-jjlr:latest'
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                echo '--- Iniciando contenedor en puerto 5001 ---'
+                sh 'docker run -d --name tarea7-container-jjlr -p 5001:5000 tarea7-jjlr:latest'
+                sh 'sleep 3'
+                sh 'docker ps --filter name=tarea7-container-jjlr'
+            }
+        }
+
+        stage('Integration Test') {
+            steps {
+                echo '--- Verificando endpoints de la aplicacion ---'
+                sh 'curl -sf http://localhost:5001/ | head -20'
+                sh 'curl -sf http://localhost:5001/health'
+                echo '=== HEALTH CHECK EXITOSO ==='
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                echo '--- Limpiando contenedor ---'
+                sh 'docker stop tarea7-container-jjlr'
+                sh 'docker rm tarea7-container-jjlr'
+                echo '=== CONTENEDOR ELIMINADO ==='
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'PIPELINE TAREA 7 EXITOSO - Imagen Docker construida y verificada'
+        }
+        failure {
+            sh 'docker stop tarea7-container-jjlr || true'
+            sh 'docker rm tarea7-container-jjlr || true'
+            echo 'Pipeline fallido - contenedor limpiado'
+        }
+    }
+}

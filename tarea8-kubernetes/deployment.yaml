@@ -1,13 +1,11 @@
-# Tarea 8 - Kubernetes | Alumno: JJLR | UAX DevOps 2026
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tarea8-deployment-jjlr
-  namespace: default
   labels:
     app: tarea8-jjlr
     alumno: jjlr
-    tarea: tarea8-kubernetes
+    curso: devops-uax-2026
 spec:
   replicas: 2
   selector:
@@ -20,27 +18,30 @@ spec:
         alumno: jjlr
     spec:
       containers:
-      - name: flask-app
-        image: docker.io/library/tarea7-jjlr:latest
+      - name: tarea8-container-jjlr
+        image: tarea7-jjlr:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 5000
+          name: http
         resources:
           requests:
-            memory: 64Mi
-            cpu: 50m
+            memory: "64Mi"
+            cpu: "100m"
           limits:
-            memory: 128Mi
-            cpu: 200m
+            memory: "128Mi"
+            cpu: "250m"
         livenessProbe:
           httpGet:
             path: /health
             port: 5000
           initialDelaySeconds: 10
-          periodSeconds: 15
+          periodSeconds: 30
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 5000
           initialDelaySeconds: 5
           periodSeconds: 10
+          failureThreshold: 3
