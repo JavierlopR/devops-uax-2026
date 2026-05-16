@@ -136,7 +136,7 @@ spec:
 ## Pipeline Jenkins
 
 - **Job:** `tarea8-pipeline-jjlr`
-- **Build:** #2 — ✅ SUCCESS
+- **Build:** #2 — SUCCESS
 - **Stages:** Checkout Manifests → Verify Cluster → Deploy Application → Verify Deployment → Integration Test → Cleanup
 
 ### Output del pipeline (extracto)

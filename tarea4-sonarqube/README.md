@@ -47,7 +47,7 @@ sudo systemctl restart jenkins
 
 | Métrica | Resultado |
 |---|---|
-| Quality Gate | ✅ PASSED |
+| Quality Gate | PASSED |
 | Bugs | 0 |
 | Vulnerabilities | 0 |
 | Code Smells | 1 |
@@ -58,7 +58,7 @@ sudo systemctl restart jenkins
 ## Pipeline resultado
 
 - **Job:** `tarea4-pipeline-jjlr`
-- **Build:** #3 — ✅ SUCCESS
+- **Build:** #3 — SUCCESS
 - **Stages:** Checkout → Build → Test → SonarQube Analysis → Quality Gate → Package
 
 ## Problema encontrado y solución

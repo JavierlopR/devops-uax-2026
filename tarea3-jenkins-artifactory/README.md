@@ -40,7 +40,7 @@ sudo docker run -d --name artifactory \
 ## Pipeline resultado
 
 - **Job:** `tarea3-pipeline-jjlr`
-- **Build:** #3 — ✅ SUCCESS
+- **Build:** #3 — SUCCESS
 - **Stages:** Checkout → Build → Test → Package → Deploy to Artifactory → Verificacion
 - **Artefacto:** `maven-demo-1.0-SNAPSHOT.jar` publicado en `libs-snapshot-local`
 

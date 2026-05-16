@@ -9,12 +9,12 @@ Contiene la infraestructura real desplegada, pipelines Jenkins, código y screen
 
 | Tarea | Tecnología | Estado | Pipeline |
 |---|---|---|---|
-| [Tarea 3](./tarea3-jenkins-artifactory/) | Jenkins CI/CD + JFrog Artifactory OSS | ✅ Completada | Build #3 SUCCESS |
-| [Tarea 4](./tarea4-sonarqube/) | SonarQube — Análisis de Calidad | ✅ Completada | Build #3 SUCCESS |
-| [Tarea 5](./tarea5-ansible/) | Ansible — Aprovisionamiento Tomcat | ✅ Completada | 13 tasks OK |
-| [Tarea 6](./tarea6-terraform/) | Terraform IaC — Azure Infrastructure | ✅ Completada | 7 resources created |
-| [Tarea 7](./tarea7-docker/) | Docker — Contenedorización Flask | ✅ Completada | Build #2 SUCCESS |
-| [Tarea 8](./tarea8-kubernetes/) | Kubernetes (k3s) — Orquestación | ✅ Completada | Build #2 SUCCESS |
+| [Tarea 3](./tarea3-jenkins-artifactory/) | Jenkins CI/CD + JFrog Artifactory OSS | Completada | Build #3 SUCCESS |
+| [Tarea 4](./tarea4-sonarqube/) | SonarQube — Análisis de Calidad | Completada | Build #3 SUCCESS |
+| [Tarea 5](./tarea5-ansible/) | Ansible — Aprovisionamiento Tomcat | Completada | 13 tasks OK |
+| [Tarea 6](./tarea6-terraform/) | Terraform IaC — Azure Infrastructure | Completada | 7 resources created |
+| [Tarea 7](./tarea7-docker/) | Docker — Contenedorización Flask | Completada | Build #2 SUCCESS |
+| [Tarea 8](./tarea8-kubernetes/) | Kubernetes (k3s) — Orquestación | Completada | Build #2 SUCCESS |
 
 ---
 
@@ -37,7 +37,7 @@ Contiene la infraestructura real desplegada, pipelines Jenkins, código y screen
 - **VM:** `dev-vm-devops-git-jjlr` — Jenkins 2.492.3 + Artifactory OSS 7.x (Docker)
 - **Pipeline:** 6 stages — Checkout → Build → Test → Package → Deploy to Artifactory → Verificacion
 - **Artefacto:** `maven-demo-1.0-SNAPSHOT.jar` publicado en `libs-snapshot-local`
-- **Resultado:** Build #3 ✅ SUCCESS
+- **Resultado:** Build #3 SUCCESS
 
 [Ver código y detalles →](./tarea3-jenkins-artifactory/)
 
@@ -47,7 +47,7 @@ Contiene la infraestructura real desplegada, pipelines Jenkins, código y screen
 
 - **SonarQube:** 12.30.0 Community Edition en Docker (`dev-vm-devops-sonar-jjlr`)
 - **Pipeline:** 6 stages — Checkout → Build → Test → SonarQube Analysis → Quality Gate → Package
-- **Resultado del análisis:** Quality Gate ✅ PASSED — 0 Bugs, 0 Vulnerabilities, Rating A
+- **Resultado del análisis:** Quality Gate PASSED — 0 Bugs, 0 Vulnerabilities, Rating A
 - **Fix clave:** Usar IP privada `10.0.0.4:9000` (hairpin NAT de Azure)
 
 [Ver código y detalles →](./tarea4-sonarqube/)

@@ -93,7 +93,7 @@ docker stop tarea7-test && docker rm tarea7-test
 ## Pipeline Jenkins
 
 - **Job:** `tarea7-pipeline-jjlr`
-- **Build:** #2 — ✅ SUCCESS
+- **Build:** #2 — SUCCESS
 - **Stages:** Checkout → Build Docker Image → Inspect Image → Run Container → Integration Test → Cleanup
 
 ### Output del pipeline (extracto)
