@@ -1,4 +1,4 @@
-# DevOps UAX 2026 — Javier López Ramos (JJLR)
+# DevOps UAX 2026 — Jesus Javier López Ramos (JJLR)
 
 Repositorio de evidencias del curso DevOps — Universidad Alfonso X el Sabio 2026.  
 Contiene la infraestructura real desplegada, pipelines Jenkins, código y screenshots de cada tarea.
